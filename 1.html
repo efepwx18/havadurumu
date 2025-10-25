@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anlık Hava Durumu</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        
+        .card {
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #4a4e69;
+            margin-top: 0;
+            font-size: 1.8em;
+        }
+        
+        h2 {
+            color: #6c757d;
+            font-size: 1.5em;
+        }
+        
+        .message {
+            padding: 15px;
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .main-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            color: #555;
+        }
+        
+        #weather-icon {
+            font-size: 4em;
+            margin-right: 15px;
+            color: #ffc107; 
+        }
+        
+        #temperature {
+            font-size: 4em;
+            font-weight: bold;
+        }
+        
+        #description {
+            font-style: italic;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        
+        .details {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            border-top: 1px solid #eee;
+            margin-top: 15px;
+            font-size: 0.95em;
+            color: #666;
+        }
+        
+        .details i {
+            margin-right: 5px;
+            color: #9face6;
+        }
+    </style>
+    </head>
+<body>
+
+    <div id="weather-app" class="card">
+        <h1>Anlık Hava Durumu</h1>
+        
+        <div id="loading" class="message">Konumunuz (IP Adresinden Tahmini) Alınıyor...</div>
+        
+        <div id="error" class="message hidden" style="background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;">Konum veya Hava Durumu Bilgisi Alınamadı.</div>
+
+        <div id="weather-info" class="hidden">
+            <h2 id="location-name"></h2>
+            
+            <div class="main-display">
+                <i id="weather-icon" class="fas fa-sun"></i> 
+                <span id="temperature"></span>
+            </div>
+            
+            <p id="description"></p>
+
+            <div class="details">
+                <div><i class="fas fa-wind"></i> Rüzgar: <span id="wind-speed"></span></div>
+                <div><i class="fas fa-tint"></i> Nem: <span id="humidity"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Weather API ikon kodlarını Font Awesome ikonlarıyla eşleştirme
+        function getWeatherIconClass(conditionCode, isDay) {
+            // Weather API, durumu bir kod ile belirtir. Bu kodlara göre en uygun Font Awesome ikonunu seçiyoruz.
+            // Bu sadece popüler kodların bir kısmıdır. Kapsamlı liste için Weather API dokümantasyonuna bakılabilir.
+            const iconMap = {
+                // Güneşli / Açık
+                1000: isDay ? 'fas fa-sun' : 'fas fa-moon', 
+                // Bulutlu / Parçalı bulutlu
+                1003: isDay ? 'fas fa-cloud-sun' : 'fas fa-cloud-moon', 
+                1006: 'fas fa-cloud', 
+                1009: 'fas fa-cloud',
+                // Sisli
+                1030: 'fas fa-smog',
+                // Yağmur / Çiseleme
+                1063: 'fas fa-cloud-showers-heavy',
+                1183: 'fas fa-cloud-showers-heavy',
+                1189: 'fas fa-cloud-showers-heavy',
+                1195: 'fas fa-cloud-rain',
+                // Kar
+                1219: 'fas fa-snowflake',
+                // Gök Gürültüsü / Fırtına
+                1087: 'fas fa-bolt', 
+                default: 'fas fa-cloud'
+            };
+            return iconMap[conditionCode] || iconMap.default;
+        }
+
+        function displayWeather(data) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('weather-info').classList.remove('hidden');
+
+            const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+            
+            const location = data.location;
+            const current = data.current;
+
+            // Konum Adını Şehir ve Ülke olarak alıyoruz
+            document.getElementById('location-name').textContent = `${location.name}, ${location.country}`;
+            
+            // Sıcaklık (Celsius)
+            document.getElementById('temperature').textContent = `${Math.round(current.temp_c)}°C`;
+            
+            // Açıklama
+            document.getElementById('description').textContent = capitalize(current.condition.text);
+            
+            // İkon güncelleme
+            const iconElement = document.getElementById('weather-icon');
+            const isDay = current.is_day === 1; 
+            iconElement.className = getWeatherIconClass(current.condition.code, isDay);
+
+            // Rüzgar ve Nem
+            document.getElementById('wind-speed').textContent = `${current.wind_kph} km/s`;
+            document.getElementById('humidity').textContent = `${current.humidity}%`;
+        }
+
+        function handleError(message) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').classList.remove('hidden');
+        }
+
+        function fetchWeatherData(query) {
+            // ! DİKKAT: Bu anahtar, GitHub Pages'te veya kaynak kodda herkese açık olacaktır.
+            const API_KEY = 'd55ccfaf5ae04b02a60220629252510'; 
+            
+            // Weather API "current.json" endpoint'ini kullanıyoruz
+            // Query parametresi IP adresi veya konum adı olabilir
+            const API_URL = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${query}&lang=tr`;
+
+            fetch(API_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP Hatası! Durum kodu: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Weather API'den hata gelirse (örneğin API anahtarı geçersizse)
+                    if (data.error) {
+                         throw new Error(`API Hatası: ${data.error.message}`);
+                    }
+                    displayWeather(data);
+                })
+                .catch(error => {
+                    console.error('Hava durumu verisi çekilemedi:', error);
+                    handleError(`Hata: Hava durumu verisi alınırken sorun oluştu. Lütfen API anahtarınızı kontrol edin.`);
+                });
+        }
+        
+        // **********************************************
+        // IP Adresinden Konum Bilgisi Alma ve Hava Durumunu Çekme
+        // **********************************************
+        function getLocationAndWeather() {
+            document.getElementById('loading').textContent = 'IP Konumunuzdan Veri Alınıyor...';
+            
+            // Weather API, sorgu (q) parametresine 'auto:ip' yazıldığında 
+            // otomatik olarak gelen isteğin IP adresini algılayıp o konumu döndürür.
+            fetchWeatherData('auto:ip');
+        }
+
+        // Uygulamayı Başlat
+        window.onload = getLocationAndWeather;
+    </script>
+    </body>
+</html>
